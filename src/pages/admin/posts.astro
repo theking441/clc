@@ -1,0 +1,116 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import { createClient } from '@supabase/supabase-js';
+import { getCollection } from 'astro:content';
+
+const supabase = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+);
+
+const {
+  data: { session },
+} = await supabase.auth.getSession();
+
+if (!session) {
+  return Astro.redirect('/admin/login');
+}
+
+const posts = await getCollection('blog');
+const { data: categories } = await supabase
+  .from('categories')
+  .select('*')
+  .order('name');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`Posts - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+  </head>
+  <body class="bg-gray-50">
+    <div class="min-h-screen">
+      <nav class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <div class="flex">
+              <div class="flex-shrink-0 flex items-center">
+                <h1 class="text-xl font-bold">Admin Dashboard</h1>
+              </div>
+              <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <a href="/admin" class="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                  Dashboard
+                </a>
+                <a href="/admin/posts" class="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500 text-sm font-medium">
+                  Posts
+                </a>
+                <a href="/admin/categories" class="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                  Categories
+                </a>
+                <a href="/admin/menus" class="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium">
+                  Menus
+                </a>
+              </div>
+            </div>
+            <div class="flex items-center">
+              <button id="logout" class="text-gray-500 hover:text-gray-900">
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="px-4 py-6 sm:px-0">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Posts</h2>
+            <a href="/admin/posts/new" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+              Add Post
+            </a>
+          </div>
+
+          <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul class="divide-y divide-gray-200">
+              {posts.map((post) => (
+                <li class="px-6 py-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm font-medium text-gray-900">{post.data.title}</p>
+                      <p class="text-sm text-gray-500">
+                        {new Date(post.data.pubDate).toLocaleDateString()} - {post.data.category}
+                      </p>
+                    </div>
+                    <div class="flex space-x-3">
+                      <a href={`/admin/posts/${post.id}/edit`} class="text-indigo-600 hover:text-indigo-900">
+                        Edit
+                      </a>
+                      <button class="text-red-600 hover:text-red-900 delete-post" data-id={post.id}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      import { createClient } from '@supabase/supabase-js';
+
+      const supabase = createClient(
+        import.meta.env.PUBLIC_SUPABASE_URL,
+        import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+      );
+
+      document.getElementById('logout').addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        window.location.href = '/admin/login';
+      });
+    </script>
+  </body>
+</html>

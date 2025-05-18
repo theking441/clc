@@ -1,0 +1,162 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import Header from '../../../components/Header.astro';
+import Footer from '../../../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../../consts';
+import { getCollection } from 'astro:content';
+import FormattedDate from '../../../components/FormattedDate.astro';
+
+export async function getStaticPaths() {
+    const posts = await getCollection('blog');
+    const categories = [...new Set(posts.map(post => post.data.category))];
+    
+    return categories.map(category => ({
+        params: { category: category.toLowerCase() },
+        props: { 
+            category,
+            posts: posts.filter(post => post.data.category === category)
+                       .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+        },
+    }));
+}
+
+const { category, posts } = Astro.props;
+const allCategories = [...new Set((await getCollection('blog')).map(post => post.data.category))].sort();
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`${category} - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<style>
+			main {
+				width: 960px;
+			}
+			.categories {
+				display: flex;
+				gap: 1rem;
+				margin-bottom: 2rem;
+				flex-wrap: wrap;
+			}
+			.category {
+				padding: 0.5rem 1rem;
+				border-radius: 8px;
+				background-color: rgb(var(--gray-light));
+				color: rgb(var(--gray-dark));
+				text-decoration: none;
+				transition: background-color 0.2s ease;
+			}
+			.category:hover {
+				background-color: rgb(var(--gray));
+				color: white;
+			}
+			.category.active {
+				background-color: var(--accent);
+				color: white;
+			}
+			ul {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 2rem;
+				list-style-type: none;
+				margin: 0;
+				padding: 0;
+			}
+			ul li {
+				width: calc(50% - 1rem);
+			}
+			ul li * {
+				text-decoration: none;
+				transition: 0.2s ease;
+			}
+			ul li:first-child {
+				width: 100%;
+				margin-bottom: 1rem;
+				text-align: center;
+			}
+			ul li:first-child img {
+				width: 100%;
+			}
+			ul li:first-child .title {
+				font-size: 2.369rem;
+			}
+			ul li img {
+				margin-bottom: 0.5rem;
+				border-radius: 12px;
+			}
+			ul li a {
+				display: block;
+			}
+			.title {
+				margin: 0;
+				color: rgb(var(--black));
+				line-height: 1;
+			}
+			.date {
+				margin: 0;
+				color: rgb(var(--gray));
+			}
+			.post-category {
+				display: inline-block;
+				margin-top: 0.5rem;
+				font-size: 0.9em;
+				color: rgb(var(--gray));
+			}
+			ul li a:hover h4,
+			ul li a:hover .date {
+				color: rgb(var(--accent));
+			}
+			ul a:hover img {
+				box-shadow: var(--box-shadow);
+			}
+			@media (max-width: 720px) {
+				ul {
+					gap: 0.5em;
+				}
+				ul li {
+					width: 100%;
+					text-align: center;
+				}
+				ul li:first-child {
+					margin-bottom: 0;
+				}
+				ul li:first-child .title {
+					font-size: 1.563em;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<section>
+				<div class="categories">
+					<a href="/blog" class="category">All</a>
+					{allCategories.map(cat => (
+						<a
+							href={`/blog/category/${cat.toLowerCase()}`}
+							class={`category ${cat === category ? 'active' : ''}`}
+						>
+							{cat}
+						</a>
+					))}
+				</div>
+				<ul>
+					{posts.map((post) => (
+						<li>
+							<a href={`/blog/${post.id}/`}>
+								<img width={720} height={360} src={post.data.heroImage} alt="" />
+								<h4 class="title">{post.data.title}</h4>
+								<p class="date">
+									<FormattedDate date={post.data.pubDate} />
+								</p>
+								<p class="post-category">{post.data.category}</p>
+							</a>
+						</li>
+					))}
+				</ul>
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>
